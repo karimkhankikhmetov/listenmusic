@@ -17,7 +17,7 @@ A REST API for uploading and streaming music, built with FastAPI. Made to get ha
 git clone https://github.com/karimkhankikhmetov/listenmusic.git
 cd listenmusic
 pip install -r requirements.txt
-uvicorn main:app --reload
+uvicorn app.main:app --reload
 ```
 
 API runs at `http://127.0.0.1:8000`  
