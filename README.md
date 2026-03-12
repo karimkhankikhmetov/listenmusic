@@ -1,282 +1,114 @@
-# 🎵 Music Streaming API
+# 🎵 listenmusic
 
-A simple **FastAPI-based music streaming backend** that allows users to register, log in, upload tracks, stream them, list tracks, and delete them.
+A REST API for uploading and streaming music, built with FastAPI. Made to get hands-on experience with FastAPI, JWT auth, and file handling.
 
-## 🚀 Features
+## Stack
 
-* User registration
-* User authentication
-* Upload music files
-* List tracks with pagination and search
-* Stream music
-* Delete tracks (authorized users)
+- **FastAPI** — framework
+- **SQLite** — database
+- **SQLAlchemy** — ORM
+- **JWT (python-jose)** — authentication
+- **mutagen** — reading MP3 metadata (duration)
+- **passlib + bcrypt** — password hashing
 
----
-
-# 🛠 Tech Stack
-
-* **Framework:** FastAPI
-* **API Format:** REST
-* **Database:** sqlite
-
----
-
-# 📦 Installation
+## Setup
 
 ```bash
-git clone https://github.com/yourusername/music-api.git
-cd music-api
+git clone https://github.com/karimkhankikhmetov/listenmusic.git
+cd listenmusic
 pip install -r requirements.txt
-```
-
-Run the server:
-
-```bash
 uvicorn main:app --reload
 ```
 
-Server will start at:
-
-```
-http://127.0.0.1:8000
-```
-
-Interactive documentation:
-
-```
-http://127.0.0.1:8000/docs
-```
+API runs at `http://127.0.0.1:8000`  
+Swagger UI at `http://127.0.0.1:8000/docs`
 
 ---
 
-# 🔐 Authentication
+## Endpoints
 
-This API uses **Bearer authentication**.
+### Auth
 
-1. Register a user
-2. Login to receive an access token
-3. Use the token in protected routes
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/register` | No | Register a new user |
+| POST | `/login` | No | Login and get access token |
 
-Example header:
-
+**Register** — `application/x-www-form-urlencoded`
 ```
-Authorization: Bearer YOUR_ACCESS_TOKEN
+username=yourname&password=yourpassword
 ```
 
----
-
-# 📡 API Endpoints
-
-## Root
-
-### GET /
-
-Returns API status.
-
-**Response**
-
+**Login** — `application/x-www-form-urlencoded`
+```
+username=yourname&password=yourpassword&grant_type=password
+```
+Returns:
 ```json
 {
-  "message": "API running"
-}
-```
-
----
-
-# 👤 Authentication
-
-## Register
-
-### POST /register
-
-Create a new user.
-
-**Request**
-
-Form URL encoded:
-
-```
-username=yourname
-password=yourpassword
-```
-
-**Response**
-
-```json
-{
-  "message": "User registered successfully"
-}
-```
-
----
-
-## Login
-
-### POST /login
-
-Login and receive an access token.
-
-**Request**
-
-Form URL encoded:
-
-```
-username=yourname
-password=yourpassword
-```
-
-**Response**
-
-```json
-{
-  "access_token": "token",
+  "access_token": "eyJ...",
   "token_type": "bearer"
 }
 ```
 
+> Tokens are valid for 24 hours. Include in protected requests as:  
+> `Authorization: Bearer YOUR_TOKEN`
+
 ---
 
-# 🎧 Music Endpoints
+### Tracks
 
-## Upload Music
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/tracks` | No | List tracks (paginated, searchable) |
+| POST | `/upload` | ✅ Yes | Upload an MP3 |
+| GET | `/tracks/{track_id}/stream` | No | Stream a track |
+| DELETE | `/tracks/{track_id}` | ✅ Yes | Delete your own track |
 
-### POST /upload
+**GET /tracks** — query params:
 
-Upload a music file.
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| page | int | 1 | Page number |
+| limit | int | 20 | Results per page |
+| search | string | — | Search by title or author |
 
-**Authentication Required**
+Example: `GET /tracks?search=travis&page=1&limit=10`
 
-**Request**
-
-Multipart form data:
-
-```
-file: audio file
-title: track title
-```
-
-**Response**
-
+Response:
 ```json
 {
-  "message": "Track uploaded"
-}
-```
-
----
-
-## List Tracks
-
-### GET /tracks
-
-Retrieve available tracks.
-
-**Query Parameters**
-
-| Parameter | Type    | Default  | Description     |
-| --------- | ------- | -------- | --------------- |
-| page      | integer | 1        | Page number     |
-| limit     | integer | 20       | Items per page  |
-| search    | string  | optional | Search by title |
-
-Example:
-
-```
-GET /tracks?page=1&limit=10&search=rock
-```
-
----
-
-## Stream Track
-
-### GET /tracks/{track_id}/stream
-
-Stream a specific music track.
-
-**Parameters**
-
-| Name     | Type   | Description      |
-| -------- | ------ | ---------------- |
-| track_id | string | Track identifier |
-
-Example:
-
-```
-GET /tracks/abc123/stream
-```
-
----
-
-## Delete Track
-
-### DELETE /tracks/{track_id}
-
-Delete a track.
-
-**Authentication Required**
-
-**Parameters**
-
-| Name     | Type   | Description      |
-| -------- | ------ | ---------------- |
-| track_id | string | Track identifier |
-
----
-
-# ⚠️ Error Responses
-
-### Validation Error (422)
-
-Returned when request data is invalid.
-
-Example:
-
-```json
-{
-  "detail": [
+  "page": 1,
+  "limit": 10,
+  "total": 47,
+  "pages": 5,
+  "results": [
     {
-      "loc": ["body", "username"],
-      "msg": "field required",
-      "type": "value_error"
+      "id": "uuid",
+      "title": "track title",
+      "author": "username",
+      "duration": "3:45",
+      "file_size": 8192000
     }
   ]
 }
 ```
 
----
-
-# 📂 Project Structure (example)
-
+**POST /upload** — `multipart/form-data`
 ```
-project
-│
-├── main.py
-├── models.py
-├── auth.py
-├── routes
-│   ├── auth.py
-│   ├── tracks.py
-│
-├── storage
-│   └── uploads
-│
-└── requirements.txt
+file: <mp3 file>
+title: track title
 ```
+Only MP3 files accepted. Author is taken from the JWT token automatically.
+
+**DELETE /tracks/{track_id}**  
+Only the user who uploaded the track can delete it. Returns 403 otherwise.
 
 ---
 
-# 📖 API Documentation
+## Notes
 
-FastAPI automatically provides documentation:
-
-* Swagger UI:
-  `/docs`
-
-* ReDoc:
-  `/redoc`
-
----
-
-# 🧑‍💻 Author
-
-mini project to expereience **FastAPI**. the music is stored in the root of the project which is horrible but since this project is not that that serious i decided that it is ok. 
+- MP3 files are stored locally in `storage/music/` — not production-ready, fine for a mini project
+- Only MP3 (`audio/mpeg`) uploads are accepted
+- Passwords are hashed with bcrypt
+- Search is case-insensitive
